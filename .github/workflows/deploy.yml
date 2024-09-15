@@ -8,6 +8,7 @@ permissions:
   contents: read
 
 env:
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-1.amazonaws.com
   ECR_REPOSITORY: "ecspresso-demo-nginx"
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
@@ -15,7 +16,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-      ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
       ECR_IMAGE_TAG: ${{ steps.set-ecr-image-tag.outputs.ECR_IMAGE_TAG }}
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,6 @@ jobs:
           role-to-assume: "arn:aws:iam::083636136646:role/gha-deploy-ecs-role"
 
       - uses: aws-actions/amazon-ecr-login@v2
-        id: login-ecr
 
       - name: Set ECR Image Tag
         id: set-ecr-image-tag
@@ -36,7 +35,6 @@ jobs:
 
       - name: build and push docker image to ecr
         env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_IMAGE_TAG: ${{ steps.set-ecr-image-tag.outputs.ECR_IMAGE_TAG }}
         run: |
           docker build . --tag ${{ env.ECR_REGISTRY }}/${{ env.ECR_REPOSITORY }}:${{ env.ECR_IMAGE_TAG }}
@@ -62,7 +60,7 @@ jobs:
         run: ecspresso deploy --config ecspresso-config.yaml
         working-directory: ./
         env:
-          ECR_REGISTRY: ${{ needs.build.outputs.ECR_REGISTRY }}
+          ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
           ECR_IMAGE_TAG: ${{ needs.build.outputs.ECR_IMAGE_TAG }}
           AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
