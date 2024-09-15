@@ -3,7 +3,7 @@
     {
       "cpu": 256,
       "essential": true,
-      "image": "{{ must_env `ECR_REPOSITORY` }}/{{ must_env `ECR_REPOSITORY` }}:{{ must_env `ECR_IMAGE_TAG` }}",
+      "image": "{{ must_env `ECR_REGISTRY` }}/{{ must_env `ECR_REPOSITORY` }}:{{ must_env `ECR_IMAGE_TAG` }}",
       "logConfiguration": {
         "logDriver": "awslogs",
         "options": {
