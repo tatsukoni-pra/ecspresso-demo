@@ -2,6 +2,11 @@ name: deploy ecs
 
 on:
   workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'ECR image tag to deploy (optional)'
+        required: false
+        type: string
 
 permissions:
   id-token: write
@@ -15,6 +20,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: github.event.inputs.image_tag == ''
     outputs:
       ECR_IMAGE_TAG: ${{ steps.set-ecr-image-tag.outputs.ECR_IMAGE_TAG }}
     steps:
@@ -43,6 +49,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: build
+    if: always()
     steps:
       - uses: actions/checkout@v4
 
@@ -56,11 +63,19 @@ jobs:
         with:
           version: v2.4.1
 
+      - name: "Set ECR Image Tag"
+        run: |
+          if [ -n "${{ github.event.inputs.image_tag }}" ]; then
+            echo "ECR_IMAGE_TAG=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+          else
+            echo "ECR_IMAGE_TAG=${{ needs.build.outputs.ECR_IMAGE_TAG }}" >> $GITHUB_ENV
+          fi
+
       - name: "deploy ecs"
         run: ecspresso deploy --config ecspresso-config.yaml
         working-directory: ./
         env:
           ECR_REGISTRY: ${{ env.ECR_REGISTRY }}
           ECR_REPOSITORY: ${{ env.ECR_REPOSITORY }}
-          ECR_IMAGE_TAG: ${{ needs.build.outputs.ECR_IMAGE_TAG }}
+          ECR_IMAGE_TAG: ${{ env.ECR_IMAGE_TAG }}
           AWS_ACCOUNT_ID: ${{ env.AWS_ACCOUNT_ID }}
